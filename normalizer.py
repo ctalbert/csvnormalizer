@@ -46,34 +46,34 @@ def normalize_notes(notes):
     return '"' + notes + '"'
 
 
-def process_row(row):
+def process_row(row, header_order=None):
+    # header_order is an array of the field header keys
+    norm_values = {}
     if DEBUG:
         print(row)
 
     try:
-        norm_timestamp = normalize_timestamp(row['Timestamp'])
-        norm_address = normalize_address(row['Address'])
-        norm_zip = normalize_zip(row['ZIP'])
-        norm_fullname = normalize_fullname(row['FullName'])
-        norm_foo, norm_bar = normalize_foobar(row['FooDuration'], row['BarDuration'])
-        norm_total = norm_foo + norm_bar
-        norm_notes = normalize_notes(row['Notes'])
+        norm_values['Timestamp'] = normalize_timestamp(row['Timestamp'])
+        norm_values['Address'] = normalize_address(row['Address'])
+        norm_values['ZIP'] = normalize_zip(row['ZIP'])
+        norm_values['FullName'] = normalize_fullname(row['FullName'])
+        norm_values['FooDuration'], norm_values['BarDuration'] = normalize_foobar(row['FooDuration'], row['BarDuration'])
+        norm_values['TotalDuration'] = norm_values['FooDuration'] + norm_values['BarDuration']
+        norm_values['Notes'] = normalize_notes(row['Notes'])
 
         if DEBUG:
-            print('Timestamp: {}, Address: {}, zip: {}, fullname: {}, foo: {}, bar: {}, total: {}, notes: {}'.format(
-                norm_timestamp, norm_address, norm_zip, norm_fullname, norm_foo, norm_bar, norm_total, norm_notes))
+            print(norm_values)
 
-        print('{}, {}, {}, {}, {}. {}. {}. {}'.format(norm_timestamp, norm_address, norm_zip, norm_fullname, norm_foo, norm_bar, norm_total, norm_notes),
-            file=sys.stdout)
+        # Output the row
+        output = ','.join([str(norm_values[i]) for i in header_order])
+        print(output, file=sys.stdout)
 
     except ValueError:
         print('Error: {} -- will skip this line'.format(sys.exc_info()), file=sys.stderr)
 
 def main():
 
-    # Get Data and process it
-    # TODO: handle differently named rows, different orders (should be handled by DictReader)
- 
+    # Get Data and process it 
     try:
         
         sys.stdin.reconfigure(encoding='utf-8', errors='replace')
@@ -82,10 +82,11 @@ def main():
         print(sys.exc_info(), err.start, err.end, file=sys.stderr)
         sys.exit()
 
-    # output the column headers
+    # output the column headers 
+    # TODO: feels like wrong level of abstraction, don't love doing this here
     print(','.join(inputreader.fieldnames), file=sys.stdout)
     for row in inputreader:
-        process_row(row)
+        process_row(row, header_order=inputreader.fieldnames)
 
 
 if __name__ == '__main__':
